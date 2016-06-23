@@ -1,0 +1,109 @@
+---
+title: "Validation des models"
+author: "damien g."
+date: "13 mai 2016"
+output: html_document
+---
+
+Petit résumé de l'évaluation des modèles pour la réunion avec Antoine et Brad
+
+Jusqu'a maintenant nous avons testé:
+  
+  - 4 modèles
+    - mod1: `lmer(cover ~ year_rel * alti + slope  + (1+year_rel|cellID))`
+    - mod5: `lmer(cover ~ year_rel + alti + slope + I(alti^2) + I(slope^2) + year_rel:alti + year_rel:slope + (1 + year_rel|cellID/glacialID) + (alti + slope|glacialID))`
+    - mod6: `lmer(dist.to.border ~ year_rel * alti + slope  + (1+year_rel|cellID))`
+    - mod7: `lmer(dist.to.border ~ year_rel + alti + slope + I(alti^2) + I(slope^2) + year_rel:alti + year_rel:slope + (1 + year_rel|cellID/glacialID) + (alti + slope|glacialID))`
+
+- 4 empreintes de glacier fait par Simon
+    - Argentière 1949
+    - Le Tour 1952
+    - Le Tour 1988
+    - Mer de Glace 1949
+
+- 4 métriques d'évaluation
+    - TSS: True skill statistic
+    ** How well did the forecast separate the "yes" events from the "no" events? **
+    - ACCURANCY : Accuracy (fraction correct)
+    ** Overall, what fraction of the forecasts were correct? **
+    - POD: Probability of detection (hit rate)
+    ** What fraction of the observed "yes" events were correctly forecast? **
+    - FAR : False alarm ratio
+    ** What fraction of the predicted "yes" events actually did not occur (i.e., were false alarms)? **
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(knitr)
+## load the models evaluation table
+load("~/Work/MB_ATLAS_2016/_workdir/tab.scores.RData")
+knitr::kable(tab.scores %>% select(-c(ortho, shape, mask)))
+```
+
+Résumé par modèles
+
+```{r}
+tab.scores %>% group_by(model) %>% summarize( TSS.mean = mean(TSS.best.stat), 
+TSS.sens.mean = mean(TSS.sensitivity),
+TSS.spe.mean = mean(TSS.specificity),
+ACCURACY.mean = mean(ACCURACY.best.stat),
+POD.mean = mean(POD.best.stat),
+FAR.mean = mean(FAR.best.stat)) %>% knitr::kable()
+```
+
+Résumé par glacier
+
+```{r}
+tab.scores %>% group_by(glacier) %>% summarize( TSS.mean = mean(TSS.best.stat),
+TSS.sens.mean = mean(TSS.sensitivity),
+TSS.spe.mean = mean(TSS.specificity),
+ACCURACY.mean = mean(ACCURACY.best.stat),
+POD.mean = mean(POD.best.stat),
+FAR.mean = mean(FAR.best.stat)) %>% knitr::kable()
+```
+
+Résumé par glacier et par années
+
+```{r}
+tab.scores %>% group_by(glacier, date) %>% summarize( TSS.mean = mean(TSS.best.stat), 
+TSS.sens.mean = mean(TSS.sensitivity),
+TSS.spe.mean = mean(TSS.specificity),
+ACCURACY.mean = mean(ACCURACY.best.stat),
+POD.mean = mean(POD.best.stat),
+FAR.mean = mean(FAR.best.stat)) %>% knitr::kable()
+```
+
+Simple illustrations
+
+```{r}
+gg.dat <- tab.scores %>% mutate(id = paste0(glacier, "_", date)) %>% group_by(id, model) %>% select(contains("best.stat")) %>% gather(stat, score, -c(id,model)) %>% mutate(stat = sub(".best.stat", "", as.character(stat)))
+gg <- ggplot(gg.dat, aes(id, score, color = model, shape = stat)) + geom_point(size = 4) + facet_grid(~stat) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+gg
+```
+
+### Argentière 1949
+
+![](/home/georgeda/Work/MB_ATLAS_2016/_workdir/validation_rasters_plots/validation_Argentiere_1949.png)
+
+![](/home/georgeda/Work/MB_ATLAS_2016/_workdir/validation_rasters_plots/validation_Argentiere_1949_bin.png)
+
+### Le Tour 1952
+
+![](/home/georgeda/Work/MB_ATLAS_2016/_workdir/validation_rasters_plots/validation_LeTour_1952.png)
+
+![](/home/georgeda/Work/MB_ATLAS_2016/_workdir/validation_rasters_plots/validation_LeTour_1952_bin.png)
+
+
+### Le Tour 1988
+
+![](/home/georgeda/Work/MB_ATLAS_2016/_workdir/validation_rasters_plots/validation_LeTour_1988.png)
+
+![](/home/georgeda/Work/MB_ATLAS_2016/_workdir/validation_rasters_plots/validation_LeTour_1988_bin.png)
+
+### Mer de Glace 1949
+
+![](/home/georgeda/Work/MB_ATLAS_2016/_workdir/validation_rasters_plots/validation_MDG_1949.png)
+
+![](/home/georgeda/Work/MB_ATLAS_2016/_workdir/validation_rasters_plots/validation_MDG_1949_bin.png)
